@@ -20,6 +20,7 @@ const typeDefs = gql`
   type Mutation {
     createBook(input: BookInput!): Book
     updateBook(id: ID!, input: BookInput): Book
+    deleteBook(id: ID!): [Book]
   }
 `
 
@@ -33,13 +34,14 @@ class Book {
 
 const fakeDatabase = {}
 
+const getAllBooks = () => Object.keys(fakeDatabase).map(key => new Book(
+  key,
+  { title: fakeDatabase[key].title, author: fakeDatabase[key].author }
+))
+
 const resolvers = {
   Query: {
-    books: () => Object.keys(fakeDatabase).map(key => new Book(
-        key,
-        { title: fakeDatabase[key].title, author: fakeDatabase[key].author }
-      )
-    ),
+    books: () => getAllBooks(),
     book: (_, { id }) => {
       if (!fakeDatabase[id]) {
         throw new Error('no book exists with id ' + id)
@@ -48,7 +50,7 @@ const resolvers = {
     }
   },
   Mutation: {
-    createBook: (_, {input}) => {
+    createBook: (_, { input }) => {
       const id = require('crypto').randomBytes(10).toString('hex')
 
       fakeDatabase[id] = input
@@ -62,6 +64,14 @@ const resolvers = {
       fakeDatabase[id] = input
       return new Book(id, input)
     },
+    deleteBook: (_, { id }) => {
+      if (!fakeDatabase[id]) {
+        throw new Error('no book exists with id ' + id)
+      }
+
+      delete fakeDatabase[id]
+      return getAllBooks()
+    }
   }
 }
 
